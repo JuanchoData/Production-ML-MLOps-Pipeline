@@ -1,6 +1,38 @@
+from unittest.mock import patch
+
+import numpy as np
 from fastapi.testclient import TestClient
 
-from src.api import app
+
+class DummyModel:
+    """
+    Fake model used only for API testing.
+    """
+
+    def predict_proba(self, X):
+        n = len(X)
+
+        return np.array(
+            [
+                [0.95, 0.05]
+                for _ in range(n)
+            ]
+        )
+
+
+# api.py calls joblib.load() twice:
+# 1. model
+# 2. threshold
+#
+# We replace both during testing.
+with patch(
+    "joblib.load",
+    side_effect=[
+        DummyModel(),
+        0.13,
+    ],
+):
+    from src.api import app
 
 
 client = TestClient(app)
@@ -48,20 +80,15 @@ def test_predict():
 
     data = response.json()
 
-    assert data["prediction"] in [
-        "PASS",
-        "FAIL",
-    ]
+    assert data["prediction"] == "PASS"
+    assert data["prediction_numeric"] == 0
 
-    assert data["prediction_numeric"] in [
-        0,
-        1,
-    ]
-
-    assert 0 <= data["failure_probability"] <= 1
+    assert (
+        data["failure_probability"]
+        == 0.05
+    )
 
     assert data["threshold"] == 0.13
-
     assert data["sensors_provided"] == 5
 
 
