@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements-api.txt .
+
+RUN pip install --no-cache-dir -r requirements-api.txt
+
+COPY src/ ./src/
+
+COPY models/random_forest_pipeline.joblib ./models/random_forest_pipeline.joblib
+COPY models/random_forest_threshold.joblib ./models/random_forest_threshold.joblib
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"]
